@@ -2,21 +2,22 @@ package com.kh.ct.domain.emp.service;
 
 import com.kh.ct.domain.emp.dto.EmpDto;
 import com.kh.ct.domain.emp.entity.Emp;
-import com.kh.ct.domain.emp.entity.PasswordToken;
 import com.kh.ct.domain.emp.repository.EmpRepository;
 import com.kh.ct.domain.emp.repository.PasswordTokenRepository;
 import com.kh.ct.global.common.CommonEnums;
 import com.kh.ct.global.common.TokenHashUtil;
+import com.kh.ct.global.util.ValkeyKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
@@ -25,17 +26,17 @@ import java.util.UUID;
 public class PasswordResetServiceImpl implements PasswordResetService {
 
     private final EmpRepository empRepository;
-    private final PasswordTokenRepository passwordTokenRepository;
+    private final PasswordTokenRepository passwordTokenRepository; // ✅ 롤백 대비
     private final EmailSender emailSender;
     private final PasswordEncoder passwordEncoder;
 
+    private final StringRedisTemplate redis;
+
+    // ✅ 키 중앙관리
+    private final ValkeyKeys keys;
+
     private static final int EXPIRE_MINUTES = 15;
 
-    /**
-     * ✅ 프론트 주소를 properties로 분리 (dev/prod 모두 대응)
-     * 예: http://localhost:5173
-     * 배포: https://ct.yourdomain.com
-     */
     @Value("${app.frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
 
@@ -49,34 +50,36 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 CommonEnums.EmpStatus.Y
         ).orElse(null);
 
-        // ✅ 계정 존재 여부 노출 방지
         if (emp == null) {
             log.info("[RESET LINK] no matched account. empId={} email={}", request.getEmpId(), request.getEmail());
             return;
         }
 
-        // ✅ 사용자당 1토큰 정책: 기존 토큰 N 처리
+        /*
         passwordTokenRepository.updateStatusByEmpId(emp.getEmpId(), CommonEnums.CommonStatus.N);
+        */
 
         String rawToken = UUID.randomUUID().toString();
         String tokenHash = TokenHashUtil.sha256Hex(rawToken);
 
-        PasswordToken token = PasswordToken.builder()
-                .empId(emp)
-                .passwordToken(tokenHash)
-                .tokenExpiresDate(LocalDateTime.now().plusMinutes(EXPIRE_MINUTES))
-                .passwordTokenStatus(CommonEnums.CommonStatus.Y)
-                .build();
+        // ✅ 사용자당 1토큰 정책 (Valkey)
+        String oldHash = redis.opsForValue().get(keys.pwdResetEmp(emp.getEmpId()));
+        if (oldHash != null) {
+            redis.delete(keys.pwdResetToken(oldHash));
+        }
 
-        passwordTokenRepository.save(token);
+        Duration ttl = Duration.ofMinutes(EXPIRE_MINUTES);
+        redis.opsForValue().set(keys.pwdResetToken(tokenHash), emp.getEmpId(), ttl);
+        redis.opsForValue().set(keys.pwdResetEmp(emp.getEmpId()), tokenHash, ttl);
 
-        // ✅ 프론트 라우트로 이동시키는 링크 생성 (token URL 인코딩)
+        /*
+        DB 저장 로직 주석 유지
+        */
+
         String encoded = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
         String resetUrl = frontendBaseUrl + "/reset-password?token=" + encoded;
 
         String subject = "[CT] 비밀번호 재설정 링크";
-
-        // 텍스트(대체본)
         String text =
                 "비밀번호 재설정을 요청하셨습니다.\n\n" +
                         "아래 링크로 접속하여 비밀번호를 재설정하세요:\n" +
@@ -84,7 +87,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                         "※ 본인이 요청하지 않았다면 이 메일을 무시해주세요.\n" +
                         "※ 링크는 " + EXPIRE_MINUTES + "분 후 만료됩니다.";
 
-        // HTML(버튼)
         String html = """
         <!doctype html>
         <html lang="ko">
@@ -127,10 +129,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         </html>
         """.formatted(resetUrl, resetUrl, resetUrl, EXPIRE_MINUTES);
 
-        // ✅ 멀티파트로 전송(권장)
         emailSender.sendMultipart(emp.getEmail(), subject, text, html);
-
-        log.info("[RESET LINK SENT] empId={} email={} expireMin={}", emp.getEmpId(), emp.getEmail(), EXPIRE_MINUTES);
+        log.info("[RESET LINK SENT][VALKEY] empId={} email={} expireMin={}", emp.getEmpId(), emp.getEmail(), EXPIRE_MINUTES);
     }
 
     @Override
@@ -143,10 +143,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         String tokenHash = TokenHashUtil.sha256Hex(rawToken);
 
-        PasswordToken token = passwordTokenRepository.findByPasswordToken(tokenHash).orElse(null);
-        if (token == null) return EmpDto.ValidatePasswordTokenResponse.invalid("유효하지 않은 토큰입니다.");
-        if (!token.isActive()) return EmpDto.ValidatePasswordTokenResponse.invalid("이미 사용된 토큰입니다.");
-        if (token.isExpired()) return EmpDto.ValidatePasswordTokenResponse.invalid("토큰이 만료되었습니다.");
+        String empId = redis.opsForValue().get(keys.pwdResetToken(tokenHash));
+        if (empId == null) {
+            return EmpDto.ValidatePasswordTokenResponse.invalid("토큰이 만료되었거나 유효하지 않습니다.");
+        }
+
+        /*
+        DB 검증 로직 주석 유지
+        */
 
         return EmpDto.ValidatePasswordTokenResponse.valid();
     }
@@ -162,17 +166,23 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         String tokenHash = TokenHashUtil.sha256Hex(rawToken);
 
-        PasswordToken token = passwordTokenRepository.findByPasswordToken(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
-
-        if (!token.isUsable()) {
+        String empId = redis.opsForValue().get(keys.pwdResetToken(tokenHash));
+        if (empId == null) {
             throw new IllegalArgumentException("토큰이 만료되었거나 이미 사용되었습니다.");
         }
 
-        Emp emp = token.getEmpId();
+        Emp emp = empRepository.findById(empId)
+                .orElseThrow(() -> new IllegalArgumentException("계정을 찾을 수 없습니다."));
+
         emp.changePassword(passwordEncoder.encode(request.getNewPassword()));
 
-        token.markUsed();
-        log.info("[PASSWORD RESET OK] empId={}", emp.getEmpId());
+        redis.delete(keys.pwdResetToken(tokenHash));
+        redis.delete(keys.pwdResetEmp(empId));
+
+        /*
+        DB 기반 로직 주석 유지
+        */
+
+        log.info("[PASSWORD RESET OK][VALKEY] empId={}", emp.getEmpId());
     }
 }

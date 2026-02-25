@@ -38,6 +38,8 @@ public class SecurityConfig {
                         // =========================
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/valkey/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/valkey/**").permitAll()
 
                         // 회원가입/사전 단계
                         .requestMatchers(HttpMethod.POST, "/api/auth/ocr-business-card").permitAll()
