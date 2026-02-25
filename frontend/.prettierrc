@@ -1,0 +1,28 @@
+{
+  // 명령문의 끝에 항상 세미콜론(;)을 붙임
+  "semi": true,
+
+  // 들여쓰기 너비를 2칸으로 설정
+  "tabWidth": 2,
+
+  // 들여쓰기 시 탭(tab) 대신 공백(space)을 사용
+  "useTabs": false,
+
+  // 한 줄의 최대 길이를 120자로 제한 (넘어가면 줄바꿈)
+  "printWidth": 120,
+
+  // 문자열에 큰따옴표(") 대신 작은따옴표(') 사용
+  "singleQuote": true,
+
+  // 객체나 배열 등에서 마지막 요소 뒤에 쉼표 추가
+  // 예: ['a', 'b',] 또는 { a: 1, }
+  "trailingComma": "es5",
+
+  // 객체 리터럴에서 중괄호 사이에 공백 추가
+  // 예: { foo: bar } (true) vs {foo: bar} (false)
+  "bracketSpacing": true,
+
+  // 화살표 함수의 매개변수가 하나여도 괄호를 항상 붙임
+  // 예: (x) => x (always) vs x => x (avoid)
+  "arrowParens": "always"
+}

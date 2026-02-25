@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: ct
+  config:
+    # 1. 시크릿 파일(application_secret.properties)을 여기서 불러옵니다.
+    import: optional:classpath:application_secret.yaml
+  profiles:
+    active: dev
+
+server:
+  port: 8001
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+---
+# [개발 환경 설정: dev]
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver # MySQL 드라이버
+    # 2. 시크릿 파일에 있는 변수 값을 여기에 주입합니다.
+    url: ${DATASOURCE.URL}
+    username: ${DATASOURCE.USERNAME}
+    password: ${DATASOURCE.PASSWORD}
+
+  # JPA 설정 (MySQL용)
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+  # 파일 업로드 설정
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 100MB
+
+  # ⭐ 중요: ai 설정은 spring 하위에 있어야 합니다!
+  ai:
+    openai:
+      api-key: ${APIKEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+
+server:
+  port: 8001
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+DATA_API:
+  SERVICE_KEY: "I%2BLq678BJU%2B547TEKBXQDCAIGMBKm3RIzTDUSUNuC8VyNSc30c%2FcbH8fMY40AutRcx6IKR1McOUXc1xb9kjXRA%3D%3D"
+  BASE_URL: "http://api.odcloud.kr/api/15003087/v1/uddi:89fab983-66d8-40ad-901a-d535f8699d29"
+
+api:
+  flight:
+    service-key: "I%2BLq678BJU%2B547TEKBXQDCAIGMBKm3RIzTDUSUNuC8VyNSc30c%2FcbH8fMY40AutRcx6IKR1McOUXc1xb9kjXRA%3D%3D"
+    base-url: "http://api.odcloud.kr/api/15003087/v1/uddi:89fab983-66d8-40ad-901a-d535f8699d29"

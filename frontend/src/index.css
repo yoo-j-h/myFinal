@@ -1,0 +1,88 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* ========================================
+     테마 CSS Variables (동적으로 변경됨)
+     ======================================== */
+  
+  /* 항공사 브랜드 컬러 */
+  --color-primary: #4A5568;
+  --color-secondary: #2D3748;
+  --color-accent: #718096;
+  --color-hover: #E2E8F0;
+  --color-danger: #E53E3E;
+  
+  /* 배경 색상 */
+  --bg-main: #FFFFFF;
+  --bg-secondary: #F1F5F9;
+  --bg-tertiary: #EDF2F7;
+  --bg-hover: #E2E8F0;
+  --bg-modal: #FFFFFF;
+  --bg-input: #F7FAFC;
+  
+  /* 텍스트 색상 */
+  --text-primary: #1A202C;
+  --text-secondary: #4A5568;
+  --text-tertiary: #718096;
+  --text-disabled: #A0AEC0;
+  --text-inverse: #FFFFFF;
+  
+  /* 기타 */
+  --border-color: #E2E8F0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --overlay-color: rgba(0, 0, 0, 0.5);
+}
+
+a {
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: inherit;
+  transition: color 0.25s ease;
+}
+a:hover {
+  color: var(--color-accent);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+button:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-hover);
+}
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

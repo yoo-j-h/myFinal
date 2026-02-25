@@ -1,0 +1,210 @@
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        /* ===== Page ===== */
+        @page {
+          size: A4;
+          margin: 16mm 16mm 18mm 16mm;
+
+          /* 페이지 번호(원하시면 유지) */
+          @bottom-right {
+            content: "Page " counter(page) " / " counter(pages);
+            font-size: 10px;
+            color: #9ca3af;
+          }
+        }
+
+        /* ===== Base ===== */
+        body {
+          font-family: "NotoSansKR", sans-serif;
+          color: #111827;
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .muted { color: #6b7280; }
+        .small { font-size: 11px; }
+        .hr { height: 1px; background: #e5e7eb; margin: 10px 0 14px; }
+
+        /* ===== Header ===== */
+        .header {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 14px 14px 12px;
+          background: #f9fafb;
+        }
+        .title {
+          font-size: 18px;
+          font-weight: 800;
+          margin: 0 0 6px;
+        }
+        .meta-row {
+          display: block;
+        }
+        .meta-item {
+          display: inline-block;
+          margin-right: 10px;
+        }
+        .badge {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: #eef2ff;
+          color: #3730a3;
+          font-weight: 700;
+          font-size: 11px;
+          vertical-align: middle;
+        }
+
+        /* ===== Cards (table 기반: 가장 안정적) ===== */
+        .cards {
+          width: 100%;
+          border-spacing: 10px; /* 카드 간격 */
+          margin-top: 10px;
+        }
+        .card {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 12px;
+          background: #ffffff;
+        }
+        .card-label {
+          font-size: 11px;
+          color: #6b7280;
+          margin-bottom: 6px;
+        }
+        .card-value {
+          font-size: 22px;
+          font-weight: 800;
+          margin: 0;
+        }
+        .accent-blue { color: #2563eb; }
+        .accent-green { color: #10b981; }
+        .accent-amber { color: #f59e0b; }
+        .accent-red { color: #ef4444; }
+
+        /* ===== Section Title ===== */
+        .section-title {
+          font-size: 13px;
+          font-weight: 800;
+          margin: 16px 0 8px;
+        }
+
+        /* ===== Table ===== */
+        table.data {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        table.data th, table.data td {
+          padding: 8px 10px;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 11px;
+        }
+        table.data th {
+          background: #f3f4f6;
+          text-align: left;
+          font-weight: 800;
+          color: #374151;
+        }
+        table.data tbody tr:nth-child(even) {
+          background: #fafafa;
+        }
+        .right { text-align: right; }
+    </style>
+</head>
+
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="title" th:text="${dto.empName + ' 건강 리포트'}">건강 리포트</div>
+
+    <div class="meta-row small muted">
+      <span class="meta-item">
+        <span class="badge" th:text="${'최근 ' + days + '일'}">최근 7일</span>
+      </span>
+        <span class="meta-item" th:text="${'생성: ' + generatedAtText}">생성: 2026-02-22 12:15</span>
+        <span class="meta-item" th:if="${dto.deptName != null}" th:text="${'부서: ' + dto.deptName}">부서: -</span>
+    </div>
+</div>
+
+<!-- Cards: 2x2 -->
+<table class="cards">
+    <tr>
+        <td style="width:50%; vertical-align: top;">
+            <div class="card">
+                <div class="card-label">건강 점수</div>
+                <p class="card-value accent-blue"
+                   th:text="${dto.healthPoint == null ? '-' : dto.healthPoint}">-</p>
+            </div>
+        </td>
+        <td style="width:50%; vertical-align: top;">
+            <div class="card">
+                <div class="card-label">신체건강</div>
+                <p class="card-value accent-green"
+                   th:text="${dto.physicalPoint == null ? '-' : dto.physicalPoint}">-</p>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td style="width:50%; vertical-align: top;">
+            <div class="card">
+                <div class="card-label">스트레스</div>
+                <p class="card-value accent-amber"
+                   th:text="${dto.stressPoint == null ? '-' : dto.stressPoint}">-</p>
+            </div>
+        </td>
+        <td style="width:50%; vertical-align: top;">
+            <div class="card">
+                <div class="card-label">피로도</div>
+                <p class="card-value accent-red"
+                   th:text="${dto.fatiguePoint == null ? '-' : dto.fatiguePoint}">-</p>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<div class="hr"></div>
+
+<!-- Trend -->
+<div class="section-title">건강 점수 추이</div>
+<table class="data">
+    <thead>
+    <tr>
+        <th style="width:40%;">날짜</th>
+        <th class="right">건강 점수</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p : ${dto.trend}">
+        <td th:text="${p.date}">2026-02-22</td>
+        <td class="right" th:text="${p.healthPoint}">80</td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- tips 섹션을 원하시면 아래처럼 추가 가능 -->
+<!--
+<div class="section-title">맞춤 건강팁</div>
+<table class="data">
+  <thead>
+    <tr>
+      <th style="width:30%;">카테고리</th>
+      <th>내용</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="t : ${dto.tips}">
+      <td th:text="${t.category}">수면 관리</td>
+      <td th:text="${t.title}">숙면을 위한 정보…</td>
+    </tr>
+  </tbody>
+</table>
+-->
+
+</body>
+</html>
